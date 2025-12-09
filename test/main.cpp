@@ -13,6 +13,28 @@
 #define INET6_ADDRESS_SIZE 16
 
 
+struct frame_details {
+    uint8_t* mac_destination_addr;
+    uint8_t* mac_source_addr;
+
+    uint16_t type_field;
+};
+
+struct inet_packet_details {
+    uint8_t header_length;
+    uint16_t total_length;
+    uint8_t time_to_live;
+    uint8_t protocol;
+    uint32_t inet_source_addr;
+    uint32_t inet_destination_addr;
+};
+
+struct inet6_packet_details {
+    uint8_t* inet6_source_addr;
+    uint8_t* inet6_destination_addr;
+
+};
+
 std::vector<uint8_t> read_file(const char* file_name)
 {
     std::fstream bin_file;
@@ -67,56 +89,46 @@ bool type_is_ipv4(std::vector<uint8_t> packet)
     return is_ipv4;
 }
 
-uint8_t* get_destination_mac(std::vector<uint8_t> packet)
+void get_destination_mac_addr(std::vector<uint8_t> packet, struct frame_details* frame)
 {
-    // 6 bytes for mac address size
     uint8_t mac_address[MAC_ADDRESS_SIZE];
+    uint32_t dest_mac_offset = 0;
 
+    for (int i = 0; i < MAC_ADDRESS_SIZE; i++) {
+        mac_address[i] = 0x00 | packet[dest_mac_offset + i];
+    }
 
-
-
+    frame->mac_destination_addr = mac_address;
 }
-
-struct frame_details {
-    uint8_t mac_destination_addr[MAC_ADDRESS_SIZE];
-    uint8_t mac_source_addr[MAC_ADDRESS_SIZE];
-
-    uint16_t type_field;
-};
-
-struct inet_packet_details {
-    uint8_t header_length;
-    uint16_t total_length;
-    uint8_t time_to_live;
-    uint8_t protocol;
-    uint32_t inet_source_addr;
-    uint32_t inet_destination_addr;
-};
-
-struct inet6_packet_details {
-    uint8_t inet6_source_addr[INET6_ADDRESS_SIZE];
-    uint8_t inet6_destination_addr[INET6_ADDRESS_SIZE];
-
-};
-
-
 
 
 int main(int argv, char** argc) 
 {
     std::vector<uint8_t> packet;
+    struct frame_details frame;
     const char* file_name = "../output_raw.bin";
 
     packet = read_file(file_name);
-    for (int i = 0; i < packet.size(); i++)
-        std::cout << std::hex << packet[i] << std::endl;
+    //  for (int i = 0; i < packet.size(); i++)
+      //  std::cout << std::hex << packet[i] << std::endl;
 
     bool is_ipv4 = type_is_ipv4(packet);
     
     if (is_ipv4 == true){
-        std::cout << "true";
+        std::cout << "true" << std::endl;
     } else {
-        std::cout << "false";
+        std::cout << "false" << std::endl;
     }
+
+    get_destination_mac_addr(packet, &frame);
+
+    // frame.mac_destination_addr[0] == 0xFF;    
+    if (frame.mac_destination_addr[0] == 0x00){
+        std::cout << "WEIRD ISSUE" << std::endl;
+    }
+ 
+
+    std::cout << "Destination mac address: " << std::hex << frame.mac_destination_addr << std::endl;
+
     return 0;
 }
